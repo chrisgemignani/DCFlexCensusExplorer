@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+                xmlns:s="library://ns.adobe.com/flex/spark" 
+                xmlns:mx="library://ns.adobe.com/flex/mx"  rollOver="itemrenderer1_rollOverHandler(event)" 
+                autoDrawBackground="false">
+    
+    <fx:Script>
+    <![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.DynamicEvent;
+        
+        import org.juicekit.util.Colors;
+        import org.juicekit.util.Strings;
+        
+        import sparkflare.vis.VisualizationList;
+        
+        override public function set data(v:Object):void {
+            super.data = v;
+        }
+        
+
+        protected function itemrenderer1_rollOverHandler(event:MouseEvent):void
+        {
+            if (this.data.hasOwnProperty('grouper')) {
+                var de:DynamicEvent = new DynamicEvent('changeFilters', true);
+                de['grouper'] = data.grouper;
+                de['grouperVal'] = data.group;
+                dispatchEvent(de);
+            }
+        }
+
+    ]]>
+    </fx:Script>
+    
+    <fx:Declarations>
+        <s:SolidColor id="normalFill" color="0xcccccc"/>
+        <s:SolidColor id="hoverFill" color="0xff6600"/>		
+        <s:LinearGradient id="normalGradientFill">
+            <s:GradientEntry color="{normalFill.color}"/>
+            <s:GradientEntry color="{Colors.darken(normalFill.color,0.05)}"/>
+        </s:LinearGradient>
+    </fx:Declarations>
+    
+    <s:states>
+        <s:State name="normal"/>
+        <s:State name="hovered"/>
+    </s:states>
+    
+    
+    <s:Rect includeIn="normal" id="rect" height="{this.height}" width="{this.width}" fill="{normalFill}" fill.hovered="{hoverFill}"/>
+    <s:Ellipse includeIn="hovered" id="oval" height="{this.height}" width="{this.width}" fill="{normalFill}" fill.hovered="{hoverFill}"/>
+    
+    <s:Label id="lbl" 
+             fontSize="10" 
+             fontSize.hovered="12" 
+             color="{Colors.whiteOrBlack(normalFill.color)}" 
+             fontFamily="Arial"  
+             text.hovered="{Strings.format('{0}\nAge: {1:0.0}\nPop: {2:#,##0}', data.group, data.averageAge, data.totalPop)}"
+             verticalAlign.hovered="middle" textAlign.hovered="center"
+             text="{Strings.format('{0}', data.group)}" 
+             width="100%" 
+             height="100%" 
+             visible="{this.width > 30}"/>
+</s:ItemRenderer>

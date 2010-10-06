@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+               xmlns:s="library://ns.adobe.com/flex/spark" 
+               xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955" minHeight="600" xmlns:data="org.juicekit.data.*" xmlns:local="*" xmlns:vis="sparkflare.vis.*" xmlns:mappers="sparkflare.mappers.*" xmlns:layouts="sparkflare.layouts.*">
+    
+    <fx:Script>
+    <![CDATA[
+        import org.juicekit.query.Query;
+        import org.juicekit.query.methods.*;
+        import org.juicekit.util.Strings;
+        
+        [Bindable]
+        private var stateQuery:Query = select({group: 'STATE', 
+            totalPop: sum('POP2008'),
+            grouper: _('STATE'),
+            averageAge: wtdaverage('AGE', 'POP2008'),
+            pctChange: pctchange('POP2008', 'POP2000')})
+            .groupby('STATE')
+            .orderby('STATE');
+        
+        [Bindable]
+        private var ageQuery:Query = select({group: 'AGE', 
+            totalPop: sum('POP2008'),
+            grouper: _('AGE'),
+            averageAge: wtdaverage('AGE', 'POP2008'),
+            pctChange: pctchange('POP2008', 'POP2000')})
+            .groupby('AGE')
+            .orderby('AGE');
+        
+        [Bindable]
+        private var genderQuery:Query = select({group: 'SEX', 
+            totalPop: sum('POP2008'),
+            grouper: _('SEX'),
+            averageAge: wtdaverage('AGE', 'POP2008'),
+            pctChange: pctchange('POP2008', 'POP2000')})
+            .groupby('SEX')
+            .orderby('SEX');
+    ]]>
+    </fx:Script>
+    
+    <fx:Declarations>
+        <!-- Place non-visual elements (e.g., services, value objects) here -->
+        <data:ArrayCollectionFromUrl id="rawData" url="http://media.juiceanalytics.com/census/CENSUS_STATEAGESEX.csv"/>
+        
+        <data:LiveQuery id="q" dataProvider="{rawData.result}" query="{
+                        select('AGE','SEX','STATE','POP2000','POP2008')
+                        .where(filter1.whereClause)
+                        .where(filter2.whereClause)
+                        .where(filter3.whereClause)
+                        }"/>
+        
+        <data:LiveQuery id="totalPop" dataProvider="{q.result}" 
+                        query="{select({total2000: sum('POP2000'), 
+                        total2008: sum('POP2008'),
+                        pctChange: pctchange('POP2008', 'POP2000')})}"/>
+        
+        
+        <data:LiveQuery id="summaryByState" 
+                        dataProvider="{q.result}"
+                        query="{stateQuery}"/>
+        
+        
+        <data:LiveQuery id="summaryByAge" 
+                        dataProvider="{q.result}"
+                        query="{ageQuery}"/>
+        
+        
+        <data:LiveQuery id="summaryByGender" 
+                        dataProvider="{q.result}"
+                        query="{genderQuery}"/>
+        
+
+    </fx:Declarations>
+    
+    
+    <s:layout>
+        <s:VerticalLayout gap="0"/>
+    </s:layout>
+    
+    
+    <s:BorderContainer backgroundColor="0xeeeeee" borderWeight="0" width="100%" height="60" borderAlpha="0">
+        <s:layout>
+            <s:HorizontalLayout gap="40" paddingTop="20" paddingBottom="0" paddingLeft="20" paddingRight="20"/>
+        </s:layout>        
+        <local:StateHSliderFilterer id="filter2" dataProvider="{rawData.result}" property="STATE" dataType="categorical" enabled="true"/>
+        <local:HSliderFilterer id="filter1" dataProvider="{rawData.result}" property="AGE"/>
+        <local:HSliderFilterer id="filter3" dataProvider="{rawData.result}" property="SEX" dataType="categorical" enabled="true"/>
+    </s:BorderContainer>        
+    
+    <s:Group>
+        <s:layout>
+            <s:VerticalLayout paddingTop="20" paddingLeft="20"/>
+        </s:layout>
+        <s:HGroup gap="20">
+            <s:Label text="{Strings.format('{0:#,##0} in 2008', totalPop.result.getItemAt(0).total2008)}" fontSize="96" fontWeight="bold"/>
+            <s:Label text="{Strings.format('{0:#,##0} in 2000\n{1:0.0%} percent change', totalPop.result.getItemAt(0).total2000, totalPop.result.getItemAt(0).pctChange)}" fontSize="36" fontWeight="bold" color="0xcccccc"/>
+            
+        </s:HGroup>
+
+        <s:HGroup gap="20">
+            <s:Label text="State" fontSize="48" fontWeight="bold" color="0xcccccc" width="300"/>
+            <s:Label text="Age" fontSize="48" fontWeight="bold" color="0xcccccc" width="300"/>
+            <s:Label text="Gender" fontSize="48" fontWeight="bold" color="0xcccccc" width="300"/>
+        </s:HGroup>
+
+        <s:HGroup gap="20">
+            
+            <vis:VisualizationDataGroup id="vis" dataProvider="{summaryByState.result}" transitionPeriod="1.0" itemRenderer="CensusItemRenderer" height="500" width="300" >
+                <mappers:MapperSwitch>                    
+                    <mappers:MapperChain>
+                        <mappers:ColorMapper sourceField="data.pctChange"
+                                             sourceMin="{summaryByState.result.stats('pctChange').minimum}" 
+                                             sourceMax="{summaryByState.result.stats('pctChange').maximum}"
+                                             targetField="normalFill.color" 
+                                             palette="-RdYlGn" 
+                                             />
+                        <layouts:TreemapLayout sizeField="data.totalPop"/>
+                    </mappers:MapperChain>                    
+                </mappers:MapperSwitch>
+            </vis:VisualizationDataGroup>
+
+            <vis:VisualizationDataGroup id="vis2" dataProvider="{summaryByAge.result}" transitionPeriod="1.0" itemRenderer="CensusItemRenderer" height="500" width="300" >
+                <mappers:MapperSwitch>                    
+                    <mappers:MapperChain>
+                        <mappers:ColorMapper sourceField="data.pctChange"
+                                             sourceMin="{summaryByAge.result.stats('pctChange').minimum}" 
+                                             sourceMax="{summaryByAge.result.stats('pctChange').maximum}"
+                                             targetField="normalFill.color" 
+                                             palette="-RdYlGn" 
+                                             />
+                        <layouts:TreemapLayout sizeField="data.totalPop"/>
+                    </mappers:MapperChain>                    
+                </mappers:MapperSwitch>
+            </vis:VisualizationDataGroup>
+
+            <vis:VisualizationDataGroup id="vis3" dataProvider="{summaryByGender.result}" transitionPeriod="1.0" itemRenderer="CensusItemRenderer" height="500" width="300" >
+                <mappers:MapperSwitch>                    
+                    <mappers:MapperChain>
+                        <mappers:ColorMapper sourceField="data.pctChange"
+                                             sourceMin="{summaryByGender.result.stats('pctChange').minimum}" 
+                                             sourceMax="{summaryByGender.result.stats('pctChange').maximum}"
+                                             targetField="normalFill.color" 
+                                             palette="-RdYlGn" 
+                                             />
+                        <layouts:TreemapLayout sizeField="data.totalPop"/>
+                    </mappers:MapperChain>                    
+                </mappers:MapperSwitch>
+            </vis:VisualizationDataGroup>
+            
+        </s:HGroup>
+    </s:Group>
+</s:Application>
